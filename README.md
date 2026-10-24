@@ -1,9 +1,63 @@
-Welcome to the "Predictive Medicine in Bioinformatics" competition hosted by InVitro Cell Research, LLC (ICR). In this notebook, we will embark on a data science journey to develop a predictive model capable of detecting three medical conditions based on measurements of health characteristics.
+# ICR Disease Prediction
 
-Objective: The primary objective of this competition is to predict whether a person has any of three medical conditions (Class 1) or none of the three medical conditions (Class 0). By utilizing predictive models, we aim to streamline the process of determining these medical conditions, which traditionally requires invasive and time-consuming data collection from patients. Our predictive model will leverage measurements of key health characteristics to make reliable and private predictions, thus potentially revolutionizing the field of bioinformatics.
+Binary classifier that predicts whether a patient has any of three age-related medical conditions from 56
+anonymised health measurements. Built for the Kaggle competition
+[ICR – Identifying Age-Related Conditions](https://www.kaggle.com/competitions/icr-identify-age-related-conditions).
 
-Context: Aging is a significant risk factor for various health issues, including heart disease, dementia, hearing loss, and arthritis. Bioinformatics, an emerging field, focuses on finding interventions to slow and reverse biological aging and prevent age-related ailments. In this data science competition, we will explore how data-driven approaches can contribute to solving critical problems in bioinformatics, even when dealing with small datasets.
+**Best result:** Random Forest and XGBoost both reached **90.3% accuracy** on a held-out validation set,
+with **82% recall** on the minority (has-condition) class.
 
-About the Competition Host (InVitro Cell Research, LLC): Founded in 2015, InVitro Cell Research, LLC (ICR) is a pioneering company dedicated to regenerative and preventive personalized medicine. Situated in the greater New York City area, ICR boasts state-of-the-art research facilities and a team of dedicated scientists who shape their mission of researching how to repair aging in people quickly.
+**Stack:** Python · pandas · scikit-learn · imbalanced-learn (SMOTE) · XGBoost · CatBoost · matplotlib · Plotly
 
-Conclusion: This competition is a thrilling opportunity to explore new methods for solving complex bioinformatics problems using diverse data. Your contributions can significantly impact the field and help researchers understand the relationship between health characteristics and potential patient conditions. Let's get started and develop an innovative and robust predictive model to improve the lives of countless individuals through personalized medicine!# ICR-Project
+## The problem
+
+- 617 labelled patients and 56 features, plus a supplementary "greeks" metadata table.
+- Imbalanced: only about 1 in 6 patients is in the positive class, so plain accuracy is misleading and
+  recall on that class matters most.
+
+## Approach
+
+1. **Cleaning.** Imputed missing values with KNN (k = 5), converted the date column in the metadata into a
+   numeric "days since" feature, label-encoded the categorical column `EJ`, and checked for duplicates.
+2. **Exploration.** Box plots and histograms for every feature, plus the class distribution.
+3. **Validation split.** 70/30 stratified train/validation split, so both sets keep the same class ratio.
+4. **Scaling and balancing.** Standardised the features, then oversampled the training set with SMOTE
+   (431 → 712 rows). The validation set was never resampled.
+5. **Feature selection.** Kept the 25 features chosen by both Pearson correlation (|r| ≥ 0.1) and
+   SelectKBest (ANOVA F-test).
+6. **Modelling.** Tuned eight classifiers with GridSearchCV and 5-fold cross-validation.
+
+## Results (validation set, 186 patients)
+
+| Model | Accuracy | Recall (has condition) | F1 (has condition) |
+|---|---|---|---|
+| **Random Forest** | **90.3%** | **81.8%** | **0.75** |
+| **XGBoost** | **90.3%** | **81.8%** | **0.75** |
+| CatBoost | 88.7% | 78.8% | 0.71 |
+| Naive Bayes | 87.6% | 57.6% | 0.62 |
+| SVM (RBF) | 86.6% | 51.5% | 0.58 |
+| Logistic Regression (L1) | 86.0% | 78.8% | 0.67 |
+| Decision Tree | 86.0% | 72.7% | 0.65 |
+| K-Nearest Neighbours | 84.9% | 87.9% | 0.67 |
+
+The final submission used the tuned Random Forest to output class probabilities for the test set.
+
+## What I learned / would improve
+
+- On imbalanced medical data, recall on the positive class matters more than overall accuracy. KNN had the
+  lowest accuracy but caught the most positive cases.
+- The competition scores balanced log loss, so the next step would be to tune models on probability
+  calibration rather than accuracy.
+- Cross-validated scores across the whole dataset would be more reliable than a single 186-row validation split.
+
+## Run it
+
+1. Download `train.csv`, `test.csv` and `greeks.csv` from the
+   [competition data page](https://www.kaggle.com/competitions/icr-identify-age-related-conditions/data)
+   into this folder. The data is not included here because of the competition's rules.
+2. Install the dependencies and open the notebook:
+
+```bash
+pip install numpy pandas scikit-learn imbalanced-learn xgboost catboost missingno seaborn matplotlib plotly colorama
+jupyter notebook ICR_Final_Submission.ipynb
+```
